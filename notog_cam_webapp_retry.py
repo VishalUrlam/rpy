@@ -644,31 +644,43 @@ WEB_CONTROL_ENABLED = True  # Press 'm' to toggle
 
 # Safety stop polling
 SAFETY_STOP_URL = "http://10.0.0.210:5000/api/status"
-SAFETY_POLL_INTERVAL = 2.0  # Poll every 2 seconds (was 0.5)
+SAFETY_POLL_INTERVAL = 0.5  # Poll every 0.5 seconds
 _last_safety_check = 0
+_safety_triggered = False  # Cache the safety state
 
 def check_safety_stop():
-    """Poll the safety API and return True if we should stop teleoperation."""
-    global _last_safety_check
+    """Poll the safety API and return True if we should pause teleoperation."""
+    global _last_safety_check, _safety_triggered
     now = time.time()
     
-    # Don't poll too frequently
+    # Don't poll too frequently - but return cached state
     if now - _last_safety_check < SAFETY_POLL_INTERVAL:
-        return False
+        return _safety_triggered  # Return cached state between polls
     
     _last_safety_check = now
     
     try:
-        response = requests.get(SAFETY_STOP_URL, timeout=0.1)  # Very short timeout
+        response = requests.get(SAFETY_STOP_URL, timeout=0.2)
         if response.status_code == 200:
             data = response.json()
-            if data.get("result") == True:
-                print("[SAFETY] Stop triggered! result=True")
+            result = data.get("result")
+            # Handle both boolean True and string "true" (lowercase)
+            is_triggered = result == True or result == "true" or str(result).lower() == "true"
+            if is_triggered:
+                if not _safety_triggered:
+                    print(f"[SAFETY] PAUSE triggered! result={result}")
+                _safety_triggered = True
                 return True
-    except:
-        pass  # Silently ignore all errors
+            else:
+                if _safety_triggered:
+                    print(f"[SAFETY] RESUME - result={result}")
+                _safety_triggered = False
+                return False
+    except Exception as e:
+        # On error, maintain last known state
+        pass
     
-    return False
+    return _safety_triggered
 
 # Gripper position constants (in degrees) - calibrated from actual testing
 GRIPPER_OPEN_POS = 60.0     # Fully open
