@@ -835,6 +835,7 @@ def arm_joints():
     
     # Handle wrist angle if provided
     wrist_angle = data.get("wrist_angle")  # Human wrist angle (100-120° typical range)
+    print(f"[DEBUG] wrist_angle received: {wrist_angle}")  # DEBUG
     if wrist_angle is not None and isinstance(wrist_angle, (int, float)):
         wrist_angle = float(wrist_angle)
         # Map human wrist angle to robot wrist_flex
