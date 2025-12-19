@@ -429,12 +429,12 @@ class SimpleTeleopArm:
         if key_state.get('gripper+'):
             self.target_positions["gripper"] += self.degree_step
             # Clamp to physical limits
-            self.target_positions["gripper"] = min(self.target_positions["gripper"], 65.0)
+            self.target_positions["gripper"] = min(self.target_positions["gripper"], 60.0)
             print(f"[{self.prefix}] gripper: {self.target_positions['gripper']}")
         if key_state.get('gripper-'):
             self.target_positions["gripper"] -= self.degree_step
             # Clamp to physical limits
-            self.target_positions["gripper"] = max(self.target_positions["gripper"], -65.0)
+            self.target_positions["gripper"] = max(self.target_positions["gripper"], -32.0)
             print(f"[{self.prefix}] gripper: {self.target_positions['gripper']}")
         if key_state.get('pitch+'):
             self.pitch += self.degree_step
@@ -639,11 +639,11 @@ def control():
 _left_arm = None
 _right_arm = None
 
-# Gripper position constants (in degrees) - based on ~128° range centered at 0
-GRIPPER_OPEN_POS = 60.0     # Fully open (positive direction)
-GRIPPER_CLOSED_POS = -40.0  # Fully closed (negative direction)
-GRIPPER_MIN = -65.0         # Minimum allowed position (closed limit)
-GRIPPER_MAX = 65.0          # Maximum allowed position (open limit)
+# Gripper position constants (in degrees) - calibrated from actual testing
+GRIPPER_OPEN_POS = 60.0     # Fully open
+GRIPPER_CLOSED_POS = -32.0  # Fully closed (physical limit)
+GRIPPER_MIN = -32.0         # Minimum allowed position (closed limit)
+GRIPPER_MAX = 60.0          # Maximum allowed position (open limit)
 
 @_app.route("/gripper", methods=["POST", "OPTIONS"])
 def gripper_control():
