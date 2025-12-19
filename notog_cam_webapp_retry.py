@@ -777,15 +777,28 @@ def arm_joints():
         arm.target_positions["elbow_flex"] = robot_elbow
         result["elbow"] = {"human": elbow_angle, "robot": robot_elbow}
     
-    # Handle shoulder angle if provided
+    # Handle shoulder angle if provided (DISABLED for LEFT arm - motor fried)
     if shoulder_angle is not None and isinstance(shoulder_angle, (int, float)):
-        shoulder_angle = max(0, min(180, float(shoulder_angle)))
-        # Map: Center around 90° (horizontal) = 0° robot
-        # FLIPPED: Human arm up → Robot negative, Human arm down → Robot positive
-        robot_shoulder = -(shoulder_angle - 90)  # Negated
-        robot_shoulder = max(SHOULDER_MIN, min(SHOULDER_MAX, robot_shoulder))
-        arm.target_positions["shoulder_lift"] = robot_shoulder
-        result["shoulder"] = {"human": shoulder_angle, "robot": robot_shoulder}
+        if hand == "right":  # Only right arm has working shoulder
+            shoulder_angle = max(0, min(180, float(shoulder_angle)))
+            robot_shoulder = -(shoulder_angle - 90)  # Negated
+            robot_shoulder = max(SHOULDER_MIN, min(SHOULDER_MAX, robot_shoulder))
+            arm.target_positions["shoulder_lift"] = robot_shoulder
+            result["shoulder"] = {"human": shoulder_angle, "robot": robot_shoulder}
+        else:
+            result["shoulder"] = {"status": "disabled", "reason": "left_motor_fried"}
+    
+    # Handle wrist angle if provided
+    wrist_angle = data.get("wrist_angle")  # 0-180 degrees
+    if wrist_angle is not None and isinstance(wrist_angle, (int, float)):
+        wrist_angle = max(0, min(180, float(wrist_angle)))
+        # Map: Human 90° (neutral) → Robot 0°
+        #      Human 180° (up) → Robot -90°
+        #      Human 0° (down) → Robot +90°
+        robot_wrist = 90 - wrist_angle  # Similar to elbow mapping
+        robot_wrist = max(-90, min(90, robot_wrist))  # Clamp to safe range
+        arm.target_positions["wrist_flex"] = robot_wrist
+        result["wrist"] = {"human": wrist_angle, "robot": robot_wrist}
     
     return result
 
