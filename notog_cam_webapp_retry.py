@@ -467,14 +467,13 @@ class SimpleTeleopArm:
             self.target_positions["shoulder_lift"] = joint2
             self.target_positions["elbow_flex"] = joint3
             print(f"[{self.prefix}] shoulder_lift: {joint2}, elbow_flex: {joint3}")
-
-        # Wrist flex is always coupled to pitch and the other two
-        self.target_positions["wrist_flex"] = (
-            -self.target_positions["shoulder_lift"]
-            -self.target_positions["elbow_flex"]
-            + self.pitch
-        )
-        # print(f"[{self.prefix}] wrist_flex: {self.target_positions['wrist_flex']}")
+            # Wrist coupling ONLY when keyboard IK movement happens
+            self.target_positions["wrist_flex"] = (
+                -self.target_positions["shoulder_lift"]
+                -self.target_positions["elbow_flex"]
+                + self.pitch
+            )
+        # NOTE: wrist_flex is now controlled by web /arm_joints endpoint when not moving via keyboard
 
     def p_control_action(self, robot):
         obs = robot.get_observation()
