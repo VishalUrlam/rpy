@@ -26,6 +26,7 @@ from flask_cors import CORS
 import time
 import numpy as np
 import math
+import requests  # For safety stop polling
 
 from lerobot.robots.xlerobot import XLerobotConfig, XLerobot
 # from lerobot.robots.xlerobot import XLerobotClient, XLerobotClientConfig
@@ -642,6 +643,37 @@ _right_arm = None
 # Toggle between keyboard and web control
 WEB_CONTROL_ENABLED = True  # Press 'm' to toggle
 
+# Safety stop polling
+SAFETY_STOP_URL = "http://10.0.0.210:5000/api/status"
+SAFETY_POLL_INTERVAL = 0.5  # Poll every 500ms
+_last_safety_check = 0
+
+def check_safety_stop():
+    """Poll the safety API and return True if we should stop teleoperation."""
+    global _last_safety_check
+    now = time.time()
+    
+    # Don't poll too frequently
+    if now - _last_safety_check < SAFETY_POLL_INTERVAL:
+        return False
+    
+    _last_safety_check = now
+    
+    try:
+        response = requests.get(SAFETY_STOP_URL, timeout=0.5)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("result") == True:
+                print("[SAFETY] Stop triggered! result=True")
+                return True
+    except requests.exceptions.RequestException as e:
+        # Connection error - don't stop, just log occasionally
+        pass
+    except Exception as e:
+        print(f"[SAFETY] Error checking status: {e}")
+    
+    return False
+
 # Gripper position constants (in degrees) - calibrated from actual testing
 GRIPPER_OPEN_POS = 60.0     # Fully open
 GRIPPER_CLOSED_POS = -32.0  # Fully closed (physical limit)
@@ -889,6 +921,11 @@ def main():
                     break
                 # record key as "held" (we rely on key-repeat to keep it alive)
                 pressed_times[ch] = now
+
+            # Check safety stop API
+            if check_safety_stop():
+                print("[SAFETY] Teleoperation stopped by safety API!")
+                break
 
             # prune stale held keys
             stale = [k for k, t in pressed_times.items() if (now - t) > HOLD_TIMEOUT_S]
