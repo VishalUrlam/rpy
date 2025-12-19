@@ -721,7 +721,7 @@ def gripper_proportional():
     return {"status": "ok", "hand": hand, "openness": openness, "position": target_pos}
 
 # Arm joint limits (in degrees) - adjust based on robot calibration
-ELBOW_MIN = 0.0     # Fully extended (straight arm)
+ELBOW_MIN = -90.0   # Fully extended (straight arm) - negative for extension
 ELBOW_MAX = 90.0    # Fully bent
 SHOULDER_MIN = -90.0  # Arm down
 SHOULDER_MAX = 90.0   # Arm up
@@ -758,8 +758,10 @@ def arm_joints():
     # Handle elbow angle if provided
     if elbow_angle is not None and isinstance(elbow_angle, (int, float)):
         elbow_angle = max(0, min(180, float(elbow_angle)))
-        # FLIPPED: Map Human 180° (straight) → Robot 0°, Human 90° (bent) → Robot +90°
-        robot_elbow = 180 - elbow_angle  # Removed negation
+        # Map: Human 180° (straight) → Robot -90° (extended)
+        #      Human 90° (bent) → Robot 0°
+        #      Human 0° (very bent) → Robot +90°
+        robot_elbow = 90 - elbow_angle  # Human 180→-90, 90→0, 0→90
         robot_elbow = max(ELBOW_MIN, min(ELBOW_MAX, robot_elbow))
         arm.target_positions["elbow_flex"] = robot_elbow
         result["elbow"] = {"human": elbow_angle, "robot": robot_elbow}
@@ -922,11 +924,21 @@ def main():
 
             action = {**left_action, **right_action, **head_action, **base_action}
             
-            # Debug: Show gripper actions being sent
-            left_grip = action.get('left_arm_gripper.pos')
-            right_grip = action.get('right_arm_gripper.pos')
-            if left_grip is not None or right_grip is not None:
-                print(f"[ACTION] Gripper sending - L: {left_grip}, R: {right_grip}")
+            # Debug: Show all arm joint positions being sent
+            import json
+            arm_data = {
+                "left": {
+                    "shoulder": action.get('left_arm_shoulder_lift.pos'),
+                    "elbow": action.get('left_arm_elbow_flex.pos'),
+                    "gripper": action.get('left_arm_gripper.pos')
+                },
+                "right": {
+                    "shoulder": action.get('right_arm_shoulder_lift.pos'),
+                    "elbow": action.get('right_arm_elbow_flex.pos'),
+                    "gripper": action.get('right_arm_gripper.pos')
+                }
+            }
+            print(f"[JOINTS] {json.dumps(arm_data)}")
             
             robot.send_action(action)
 
