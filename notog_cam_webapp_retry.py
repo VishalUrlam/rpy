@@ -940,10 +940,11 @@ def main():
                 # record key as "held" (we rely on key-repeat to keep it alive)
                 pressed_times[ch] = now
 
-            # Check safety stop API
+            # Check safety stop API - PAUSE while true, RESUME when false
             if check_safety_stop():
-                print("[SAFETY] Teleoperation stopped by safety API!")
-                break
+                print("[SAFETY] Paused - waiting for safety to clear...")
+                time.sleep(0.5)  # Wait before checking again
+                continue  # Skip this loop iteration, don't break
 
             # prune stale held keys
             stale = [k for k, t in pressed_times.items() if (now - t) > HOLD_TIMEOUT_S]
