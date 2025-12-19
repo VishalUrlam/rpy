@@ -721,8 +721,8 @@ def gripper_proportional():
     return {"status": "ok", "hand": hand, "openness": openness, "position": target_pos}
 
 # Arm joint limits (in degrees) - adjust based on robot calibration
-ELBOW_MIN = -90.0   # Fully bent
-ELBOW_MAX = 0.0     # Fully extended (straight arm)
+ELBOW_MIN = 0.0     # Fully extended (straight arm)
+ELBOW_MAX = 90.0    # Fully bent
 SHOULDER_MIN = -90.0  # Arm down
 SHOULDER_MAX = 90.0   # Arm up
 
