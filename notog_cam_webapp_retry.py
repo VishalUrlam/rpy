@@ -799,6 +799,11 @@ def arm_joints():
         robot_wrist = max(-90, min(90, robot_wrist))  # Clamp to safe range
         arm.target_positions["wrist_flex"] = robot_wrist
         result["wrist"] = {"human": wrist_angle, "robot": robot_wrist}
+        print(f"[{hand}] wrist_flex: {robot_wrist:.1f} (human: {wrist_angle:.1f})")
+    else:
+        # Debug: wrist_angle not received
+        if wrist_angle is None:
+            pass  # No wrist data sent (hand not visible)
     
     return result
 
