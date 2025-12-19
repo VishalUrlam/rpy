@@ -891,15 +891,6 @@ def main():
             left_key_state = {action: (key in pressed_keys) for action, key in LEFT_KEYMAP.items()}
             right_key_state = {action: (key in pressed_keys) for action, key in RIGHT_KEYMAP.items()}
 
-            # Toggle web control with 'm' key
-            if 'm' in pressed_keys:
-                global WEB_CONTROL_ENABLED
-                WEB_CONTROL_ENABLED = not WEB_CONTROL_ENABLED
-                mode = "WEB" if WEB_CONTROL_ENABLED else "KEYBOARD"
-                print(f"[MODE] Switched to {mode} control")
-                pressed_keys.discard('m')  # Prevent repeat toggle
-                time.sleep(0.3)  # Debounce
-
             # Handle rectangular trajectory for left arm (y key)
             if left_key_state.get('triangle'):
                 print("[MAIN] Left arm rectangular trajectory triggered!")
