@@ -639,6 +639,9 @@ def control():
 _left_arm = None
 _right_arm = None
 
+# Toggle between keyboard and web control
+WEB_CONTROL_ENABLED = True  # Press 'm' to toggle
+
 # Gripper position constants (in degrees) - calibrated from actual testing
 GRIPPER_OPEN_POS = 60.0     # Fully open
 GRIPPER_CLOSED_POS = -32.0  # Fully closed (physical limit)
@@ -688,12 +691,16 @@ def gripper_proportional():
     Expects JSON: { "hand": "left"|"right", "openness": 0.0-1.0 }
     Maps openness (0=closed, 1=open) to gripper degrees (GRIPPER_MIN to GRIPPER_MAX).
     """
-    global _left_arm, _right_arm
+    global _left_arm, _right_arm, WEB_CONTROL_ENABLED
     
     # Handle CORS preflight
     if request.method == "OPTIONS":
         response = _app.make_default_options_response()
         return response
+    
+    # Skip if web control is disabled (keyboard mode)
+    if not WEB_CONTROL_ENABLED:
+        return {"status": "skipped", "reason": "web_control_disabled"}
     
     data = request.json
     hand = data.get("hand")  # "left" or "right"
@@ -733,12 +740,16 @@ def arm_joints():
     Expects JSON: { "hand": "left"|"right", "elbow_angle": 0-180, "shoulder_angle": 0-180 }
     Maps human angles to robot joints.
     """
-    global _left_arm, _right_arm
+    global _left_arm, _right_arm, WEB_CONTROL_ENABLED
     
     # Handle CORS preflight
     if request.method == "OPTIONS":
         response = _app.make_default_options_response()
         return response
+    
+    # Skip if web control is disabled (keyboard mode)
+    if not WEB_CONTROL_ENABLED:
+        return {"status": "skipped", "reason": "web_control_disabled"}
     
     data = request.json
     hand = data.get("hand")  # "left" or "right"
