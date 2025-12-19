@@ -839,12 +839,12 @@ def arm_joints():
         wrist_angle = float(wrist_angle)
         # Map human wrist angle to robot wrist_flex
         # Human range: 139° to 155° (~16° of movement)
-        # Robot range: -120° to +120° (full range)
+        # Robot range: -60° to +60° (reduced for less jumpy behavior)
         # Human 147° (neutral, middle of range) → Robot 0°
-        # FLIPPED: (wrist - 147) instead of (147 - wrist)
-        # REDUCED sensitivity: 6x instead of 12x
-        robot_wrist = (wrist_angle - 147) * 6  # Flipped and reduced sensitivity
-        robot_wrist = max(-120, min(120, robot_wrist))  # Clamp to safe range
+        # REDUCED sensitivity: 3x (was 6x)
+        robot_wrist = (wrist_angle - 147) * 3  # Very reduced sensitivity
+        robot_wrist = max(-60, min(60, robot_wrist))  # Reduced clamp range
+        print(f"[WRIST] human: {wrist_angle:.1f} → robot: {robot_wrist:.1f}")
         # Apply server-side smoothing
         robot_wrist = server_smooth(robot_wrist, _prev_wrist[hand])
         _prev_wrist[hand] = robot_wrist
