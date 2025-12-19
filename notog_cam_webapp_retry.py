@@ -723,15 +723,15 @@ def gripper_proportional():
 # Arm joint limits (in degrees) - adjust based on robot calibration
 ELBOW_MIN = -90.0   # Fully bent
 ELBOW_MAX = 0.0     # Fully extended (straight arm)
+SHOULDER_MIN = -90.0  # Arm down
+SHOULDER_MAX = 90.0   # Arm up
 
 @_app.route("/arm_joints", methods=["POST", "OPTIONS"])
 def arm_joints():
     """
     Control arm joints directly.
-    Expects JSON: { "hand": "left"|"right", "elbow_angle": 0-180 }
-    Maps human elbow angle to robot's elbow_flex joint.
-    Human: 180° = straight, 90° = bent 90°
-    Robot: 0° = extended, -90° = bent 90°
+    Expects JSON: { "hand": "left"|"right", "elbow_angle": 0-180, "shoulder_angle": 0-180 }
+    Maps human angles to robot joints.
     """
     global _left_arm, _right_arm
     
@@ -743,37 +743,40 @@ def arm_joints():
     data = request.json
     hand = data.get("hand")  # "left" or "right"
     elbow_angle = data.get("elbow_angle")  # 0-180 degrees
+    shoulder_angle = data.get("shoulder_angle")  # 0-180 degrees
     
     if hand not in ["left", "right"]:
         return {"status": "error", "message": "Invalid hand"}, 400
-    
-    if elbow_angle is None or not isinstance(elbow_angle, (int, float)):
-        return {"status": "error", "message": "Invalid elbow_angle"}, 400
-    
-    # Clamp human angle to valid range (0-180)
-    elbow_angle = max(0, min(180, float(elbow_angle)))
-    
-    # Map human angle to robot angle
-    # Human: 180° (straight) → 90° (bent) → 0° (very bent)
-    # Robot: 0° (straight) → -90° (bent) → further negative
-    # Formula: robot_angle = -(180 - human_angle)
-    robot_elbow = -(180 - elbow_angle)
-    
-    # Clamp to robot limits
-    robot_elbow = max(ELBOW_MIN, min(ELBOW_MAX, robot_elbow))
     
     # Get the arm
     arm = _left_arm if hand == "left" else _right_arm
     if arm is None:
         return {"status": "error", "message": "Arms not initialized"}, 500
     
-    # Set elbow_flex target position
-    # Note: The robot uses shoulder_lift and elbow_flex through IK,
-    # but we can set elbow_flex directly for this test
-    old_pos = arm.target_positions.get("elbow_flex", 0)
-    arm.target_positions["elbow_flex"] = robot_elbow
+    result = {"status": "ok", "hand": hand}
     
-    return {"status": "ok", "hand": hand, "human_angle": elbow_angle, "robot_angle": robot_elbow}
+    # Handle elbow angle if provided
+    if elbow_angle is not None and isinstance(elbow_angle, (int, float)):
+        elbow_angle = max(0, min(180, float(elbow_angle)))
+        # Map: Human 180° (straight) → Robot 0°, Human 90° (bent) → Robot -90°
+        robot_elbow = -(180 - elbow_angle)
+        robot_elbow = max(ELBOW_MIN, min(ELBOW_MAX, robot_elbow))
+        arm.target_positions["elbow_flex"] = robot_elbow
+        result["elbow"] = {"human": elbow_angle, "robot": robot_elbow}
+    
+    # Handle shoulder angle if provided
+    if shoulder_angle is not None and isinstance(shoulder_angle, (int, float)):
+        shoulder_angle = max(0, min(180, float(shoulder_angle)))
+        # Map: Human 0° (down) → Robot 0°, Human 90° (horizontal) → Robot 90°, Human 180° (up) → Robot 180°
+        # But robot shoulder_lift typically has different range, so we'll map:
+        # Human 0-180° → Robot SHOULDER_MIN to SHOULDER_MAX
+        # Center around 90° (horizontal) = 0° robot
+        robot_shoulder = shoulder_angle - 90  # Human 90° → Robot 0° (horizontal)
+        robot_shoulder = max(SHOULDER_MIN, min(SHOULDER_MAX, robot_shoulder))
+        arm.target_positions["shoulder_lift"] = robot_shoulder
+        result["shoulder"] = {"human": shoulder_angle, "robot": robot_shoulder}
+    
+    return result
 
 def start_stream_server():
     # threaded=True lets multiple clients/cams connect
