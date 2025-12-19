@@ -720,6 +720,61 @@ def gripper_proportional():
     
     return {"status": "ok", "hand": hand, "openness": openness, "position": target_pos}
 
+# Arm joint limits (in degrees) - adjust based on robot calibration
+ELBOW_MIN = -90.0   # Fully bent
+ELBOW_MAX = 0.0     # Fully extended (straight arm)
+
+@_app.route("/arm_joints", methods=["POST", "OPTIONS"])
+def arm_joints():
+    """
+    Control arm joints directly.
+    Expects JSON: { "hand": "left"|"right", "elbow_angle": 0-180 }
+    Maps human elbow angle to robot's elbow_flex joint.
+    Human: 180° = straight, 90° = bent 90°
+    Robot: 0° = extended, -90° = bent 90°
+    """
+    global _left_arm, _right_arm
+    
+    # Handle CORS preflight
+    if request.method == "OPTIONS":
+        response = _app.make_default_options_response()
+        return response
+    
+    data = request.json
+    hand = data.get("hand")  # "left" or "right"
+    elbow_angle = data.get("elbow_angle")  # 0-180 degrees
+    
+    if hand not in ["left", "right"]:
+        return {"status": "error", "message": "Invalid hand"}, 400
+    
+    if elbow_angle is None or not isinstance(elbow_angle, (int, float)):
+        return {"status": "error", "message": "Invalid elbow_angle"}, 400
+    
+    # Clamp human angle to valid range (0-180)
+    elbow_angle = max(0, min(180, float(elbow_angle)))
+    
+    # Map human angle to robot angle
+    # Human: 180° (straight) → 90° (bent) → 0° (very bent)
+    # Robot: 0° (straight) → -90° (bent) → further negative
+    # Formula: robot_angle = -(180 - human_angle)
+    robot_elbow = -(180 - elbow_angle)
+    
+    # Clamp to robot limits
+    robot_elbow = max(ELBOW_MIN, min(ELBOW_MAX, robot_elbow))
+    
+    # Get the arm
+    arm = _left_arm if hand == "left" else _right_arm
+    if arm is None:
+        return {"status": "error", "message": "Arms not initialized"}, 500
+    
+    # Set elbow_flex target position
+    # Note: The robot uses shoulder_lift and elbow_flex through IK,
+    # but we can set elbow_flex directly for this test
+    old_pos = arm.target_positions.get("elbow_flex", 0)
+    arm.target_positions["elbow_flex"] = robot_elbow
+    
+    return {"status": "ok", "hand": hand, "human_angle": elbow_angle, "robot_angle": robot_elbow}
+
 def start_stream_server():
     # threaded=True lets multiple clients/cams connect
     # Important: host='0.0.0.0' to allow external connections
