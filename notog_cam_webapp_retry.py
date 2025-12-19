@@ -765,6 +765,18 @@ ELBOW_MAX = 90.0    # Fully bent
 SHOULDER_MIN = -90.0  # Arm down
 SHOULDER_MAX = 90.0   # Arm up
 
+# Server-side smoothing for anti-jitter (on top of client smoothing)
+SERVER_SMOOTHING = 0.15  # 15% new value, 85% old
+_prev_elbow = {"left": None, "right": None}
+_prev_shoulder = {"left": None, "right": None}
+_prev_wrist = {"left": None, "right": None}
+
+def server_smooth(new_val, prev_val):
+    """Apply exponential moving average smoothing on server side."""
+    if prev_val is None:
+        return new_val
+    return prev_val + SERVER_SMOOTHING * (new_val - prev_val)
+
 @_app.route("/arm_joints", methods=["POST", "OPTIONS"])
 def arm_joints():
     """
@@ -806,6 +818,9 @@ def arm_joints():
         #      Human 0° (very bent) → Robot +90°
         robot_elbow = 90 - elbow_angle  # Human 180→-90, 90→0, 0→90
         robot_elbow = max(ELBOW_MIN, min(ELBOW_MAX, robot_elbow))
+        # Apply server-side smoothing
+        robot_elbow = server_smooth(robot_elbow, _prev_elbow[hand])
+        _prev_elbow[hand] = robot_elbow
         arm.target_positions["elbow_flex"] = robot_elbow
         result["elbow"] = {"human": elbow_angle, "robot": robot_elbow}
     
@@ -815,6 +830,9 @@ def arm_joints():
             shoulder_angle = max(0, min(180, float(shoulder_angle)))
             robot_shoulder = -(shoulder_angle - 90)  # Negated
             robot_shoulder = max(SHOULDER_MIN, min(SHOULDER_MAX, robot_shoulder))
+            # Apply server-side smoothing
+            robot_shoulder = server_smooth(robot_shoulder, _prev_shoulder[hand])
+            _prev_shoulder[hand] = robot_shoulder
             arm.target_positions["shoulder_lift"] = robot_shoulder
             result["shoulder"] = {"human": shoulder_angle, "robot": robot_shoulder}
         else:
@@ -829,9 +847,11 @@ def arm_joints():
         #      Human 0° (down) → Robot +90°
         robot_wrist = 90 - wrist_angle  # Similar to elbow mapping
         robot_wrist = max(-90, min(90, robot_wrist))  # Clamp to safe range
+        # Apply server-side smoothing
+        robot_wrist = server_smooth(robot_wrist, _prev_wrist[hand])
+        _prev_wrist[hand] = robot_wrist
         arm.target_positions["wrist_flex"] = robot_wrist
         result["wrist"] = {"human": wrist_angle, "robot": robot_wrist}
-        print(f"[{hand}] wrist_flex: {robot_wrist:.1f} (human: {wrist_angle:.1f})")
     else:
         # Debug: wrist_angle not received
         if wrist_angle is None:
