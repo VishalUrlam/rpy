@@ -681,6 +681,45 @@ def gripper_control():
     
     return {"status": "ok", "hand": hand, "state": state, "position": target_pos}
 
+@_app.route("/gripper_proportional", methods=["POST", "OPTIONS"])
+def gripper_proportional():
+    """
+    Proportional gripper position control.
+    Expects JSON: { "hand": "left"|"right", "openness": 0.0-1.0 }
+    Maps openness (0=closed, 1=open) to gripper degrees (GRIPPER_MIN to GRIPPER_MAX).
+    """
+    global _left_arm, _right_arm
+    
+    # Handle CORS preflight
+    if request.method == "OPTIONS":
+        response = _app.make_default_options_response()
+        return response
+    
+    data = request.json
+    hand = data.get("hand")  # "left" or "right"
+    openness = data.get("openness")  # 0.0 to 1.0
+    
+    if hand not in ["left", "right"]:
+        return {"status": "error", "message": "Invalid hand"}, 400
+    
+    if openness is None or not isinstance(openness, (int, float)):
+        return {"status": "error", "message": "Invalid openness value"}, 400
+    
+    # Clamp openness to valid range
+    openness = max(0.0, min(1.0, float(openness)))
+    
+    # Map openness to gripper position: 0.0 = GRIPPER_MIN, 1.0 = GRIPPER_MAX
+    target_pos = GRIPPER_MIN + (openness * (GRIPPER_MAX - GRIPPER_MIN))
+    
+    # Set the gripper target position
+    arm = _left_arm if hand == "left" else _right_arm
+    if arm is None:
+        return {"status": "error", "message": "Arms not initialized"}, 500
+    
+    arm.target_positions["gripper"] = target_pos
+    
+    return {"status": "ok", "hand": hand, "openness": openness, "position": target_pos}
+
 def start_stream_server():
     # threaded=True lets multiple clients/cams connect
     # Important: host='0.0.0.0' to allow external connections
