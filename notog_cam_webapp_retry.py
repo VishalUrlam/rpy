@@ -767,11 +767,9 @@ def arm_joints():
     # Handle shoulder angle if provided
     if shoulder_angle is not None and isinstance(shoulder_angle, (int, float)):
         shoulder_angle = max(0, min(180, float(shoulder_angle)))
-        # Map: Human 0° (down) → Robot 0°, Human 90° (horizontal) → Robot 90°, Human 180° (up) → Robot 180°
-        # But robot shoulder_lift typically has different range, so we'll map:
-        # Human 0-180° → Robot SHOULDER_MIN to SHOULDER_MAX
-        # Center around 90° (horizontal) = 0° robot
-        robot_shoulder = shoulder_angle - 90  # Human 90° → Robot 0° (horizontal)
+        # Map: Center around 90° (horizontal) = 0° robot
+        # FLIPPED: Human arm up → Robot negative, Human arm down → Robot positive
+        robot_shoulder = -(shoulder_angle - 90)  # Negated
         robot_shoulder = max(SHOULDER_MIN, min(SHOULDER_MAX, robot_shoulder))
         arm.target_positions["shoulder_lift"] = robot_shoulder
         result["shoulder"] = {"human": shoulder_angle, "robot": robot_shoulder}
