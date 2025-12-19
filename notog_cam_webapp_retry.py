@@ -1011,11 +1011,13 @@ def main():
                 "left": {
                     "shoulder": action.get('left_arm_shoulder_lift.pos'),
                     "elbow": action.get('left_arm_elbow_flex.pos'),
+                    "wrist": action.get('left_arm_wrist_flex.pos'),
                     "gripper": action.get('left_arm_gripper.pos')
                 },
                 "right": {
                     "shoulder": action.get('right_arm_shoulder_lift.pos'),
                     "elbow": action.get('right_arm_elbow_flex.pos'),
+                    "wrist": action.get('right_arm_wrist_flex.pos'),
                     "gripper": action.get('right_arm_gripper.pos')
                 }
             }
