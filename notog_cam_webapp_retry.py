@@ -834,15 +834,17 @@ def arm_joints():
             result["shoulder"] = {"status": "disabled", "reason": "left_motor_fried"}
     
     # Handle wrist angle if provided
-    wrist_angle = data.get("wrist_angle")  # Human angle (varies based on hand direction)
+    wrist_angle = data.get("wrist_angle")  # Human wrist angle (100-120° typical range)
     if wrist_angle is not None and isinstance(wrist_angle, (int, float)):
         wrist_angle = float(wrist_angle)
         # Map human wrist angle to robot wrist_flex
-        # Human 90° (neutral/horizontal) → Robot 0°
-        # Human pointing up (~0°) → Robot negative (e.g., -120°)
-        # Human pointing down (~180°) → Robot positive (e.g., +120°)
-        # Scale: human 0-180 maps to robot -120 to +120
-        robot_wrist = (90 - wrist_angle) * 1.33  # Scaled mapping (1.33 = 120/90)
+        # Human range: 100° to 120° (only 20° of movement)
+        # Robot range: -120° to +120° (full range)
+        # Human 110° (neutral) → Robot 0°
+        # Human 100° (bent one way) → Robot +120°
+        # Human 120° (bent other way) → Robot -120°
+        # Scale: 10° human movement = 120° robot movement
+        robot_wrist = (110 - wrist_angle) * 12  # 12 = 120/10
         robot_wrist = max(-120, min(120, robot_wrist))  # Clamp to safe range
         # Apply server-side smoothing
         robot_wrist = server_smooth(robot_wrist, _prev_wrist[hand])
