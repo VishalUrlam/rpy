@@ -35,7 +35,7 @@ from lerobot.utils.visualization_utils import init_rerun, log_rerun_data
 from lerobot.model.SO101Robot import SO101Kinematics
 
 HOLD_TIMEOUT_S = 0.25   # stop motion ~250ms after key repeats stop
-TICK_HZ = 50            # Safe rate: 50 Hz (100 Hz may overwhelm motor bus)
+TICK_HZ = 75            # Increased: 75 Hz for smoother motion
 
 import atexit
 
@@ -1002,6 +1002,12 @@ def main():
             left_arm.handle_keys(left_key_state)
             right_arm.handle_keys(right_key_state)
             head_control.handle_keys(left_key_state)  # Head controlled by left arm keymap
+            
+            # Debug: Show gripper key state from web
+            if left_key_state.get('gripper+') or left_key_state.get('gripper-'):
+                print(f"[DEBUG] Left gripper keys: +={left_key_state.get('gripper+')}, -={left_key_state.get('gripper-')}")
+            if right_key_state.get('gripper+') or right_key_state.get('gripper-'):
+                print(f"[DEBUG] Right gripper keys: +={right_key_state.get('gripper+')}, -={right_key_state.get('gripper-')}")
 
             left_action = left_arm.p_control_action(robot)
             right_action = right_arm.p_control_action(robot)
