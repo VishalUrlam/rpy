@@ -35,7 +35,7 @@ from lerobot.utils.visualization_utils import init_rerun, log_rerun_data
 from lerobot.model.SO101Robot import SO101Kinematics
 
 HOLD_TIMEOUT_S = 0.25   # stop motion ~250ms after key repeats stop
-TICK_HZ = 50            # send commands at 50 Hz while held
+TICK_HZ = 100           # INCREASED: send commands at 100 Hz for smooth motion
 
 import atexit
 
@@ -645,7 +645,7 @@ WEB_CONTROL_ENABLED = True  # Press 'm' to toggle
 
 # Safety stop polling
 SAFETY_STOP_URL = "http://10.0.0.210:5000/api/status"
-SAFETY_POLL_INTERVAL = 0.5  # Poll every 500ms
+SAFETY_POLL_INTERVAL = 2.0  # Poll every 2 seconds (was 0.5)
 _last_safety_check = 0
 
 def check_safety_stop():
@@ -660,17 +660,14 @@ def check_safety_stop():
     _last_safety_check = now
     
     try:
-        response = requests.get(SAFETY_STOP_URL, timeout=0.5)
+        response = requests.get(SAFETY_STOP_URL, timeout=0.1)  # Very short timeout
         if response.status_code == 200:
             data = response.json()
             if data.get("result") == True:
                 print("[SAFETY] Stop triggered! result=True")
                 return True
-    except requests.exceptions.RequestException as e:
-        # Connection error - don't stop, just log occasionally
-        pass
-    except Exception as e:
-        print(f"[SAFETY] Error checking status: {e}")
+    except:
+        pass  # Silently ignore all errors
     
     return False
 
