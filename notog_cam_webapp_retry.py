@@ -35,7 +35,7 @@ from lerobot.utils.visualization_utils import init_rerun, log_rerun_data
 from lerobot.model.SO101Robot import SO101Kinematics
 
 HOLD_TIMEOUT_S = 0.25   # stop motion ~250ms after key repeats stop
-TICK_HZ = 100           # INCREASED: send commands at 100 Hz for smooth motion
+TICK_HZ = 50            # Safe rate: 50 Hz (100 Hz may overwhelm motor bus)
 
 import atexit
 
