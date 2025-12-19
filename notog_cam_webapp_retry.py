@@ -758,8 +758,8 @@ def arm_joints():
     # Handle elbow angle if provided
     if elbow_angle is not None and isinstance(elbow_angle, (int, float)):
         elbow_angle = max(0, min(180, float(elbow_angle)))
-        # Map: Human 180° (straight) → Robot 0°, Human 90° (bent) → Robot -90°
-        robot_elbow = -(180 - elbow_angle)
+        # FLIPPED: Map Human 180° (straight) → Robot 0°, Human 90° (bent) → Robot +90°
+        robot_elbow = 180 - elbow_angle  # Removed negation
         robot_elbow = max(ELBOW_MIN, min(ELBOW_MAX, robot_elbow))
         arm.target_positions["elbow_flex"] = robot_elbow
         result["elbow"] = {"human": elbow_angle, "robot": robot_elbow}
