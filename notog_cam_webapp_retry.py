@@ -765,17 +765,15 @@ ELBOW_MAX = 90.0    # Fully bent
 SHOULDER_MIN = -90.0  # Arm down
 SHOULDER_MAX = 90.0   # Arm up
 
-# Server-side smoothing for anti-jitter (on top of client smoothing)
-SERVER_SMOOTHING = 0.15  # 15% new value, 85% old
+# Server-side smoothing DISABLED - causing lag
+# SERVER_SMOOTHING = 0.15  # 15% new value, 85% old
 _prev_elbow = {"left": None, "right": None}
 _prev_shoulder = {"left": None, "right": None}
 _prev_wrist = {"left": None, "right": None}
 
 def server_smooth(new_val, prev_val):
-    """Apply exponential moving average smoothing on server side."""
-    if prev_val is None:
-        return new_val
-    return prev_val + SERVER_SMOOTHING * (new_val - prev_val)
+    """Server smoothing DISABLED - pass-through for responsiveness."""
+    return new_val  # No smoothing - direct pass-through
 
 @_app.route("/arm_joints", methods=["POST", "OPTIONS"])
 def arm_joints():
